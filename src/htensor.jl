@@ -6,6 +6,7 @@ mutable struct HTensorNode{T} <: AbstractTensor{T}
    partition :: Vector{Int}
 end
 
+reshape2D{T}(a::Array{T,1}) = reshape(a, 1, length(a))
 reshape2D{T,N}(a::Array{T,N}) = reshape(a, prod(size(a,i) for i=1:N-1), size(a,N))
 
 function HTensorNode{T,N}(data::Array{T,N}, children = HTensorNode{T}[])
@@ -55,27 +56,27 @@ function array(t::HTensorNode)
          core  = tensordot(core, reshape2D(charr), i)
          append!(newshape, size(charr)[1:end-1])
       end
-      push!(newshape, t.nbasis)
-      reshape(core, newshape...)
+      reshape(core, newshape..., t.nbasis)
    end
 end
 
 
 function get(t::HTensorNode, idxs)
+   core = reshape(t.data, t.subshape..., t.nbasis)
    if isleaf(t)
-      i = linearindex(t.subshape, idxs)
-      return t.data[i,:]
+      return core[idxs..., :]
    else
-      core = reshape(t.data, t.subshape..., t.nbasis)
       f = 0
       nchildren = length(t.children)
+      newshape  = Int[]
       for i in 1:nchildren
          chnm = t.partition[i]
          chidxs = idxs[f+1:f+chnm]
          chvals = get(t.children[i], chidxs)
-         core = tensordot(core, reshape(chvals, 1, length(chvals)), i)
+         core = tensordot(core, reshape2D(chvals), i)
+         append!(newshape, size(chvals)[1:end-1])
          f += chnm
       end
-      reshape(core, t.nbasis)
+      reshape(core, newshape..., t.nbasis)
    end
 end
