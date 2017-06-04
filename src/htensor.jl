@@ -8,6 +8,7 @@ end
 
 reshape2D{T}(a::Array{T,1}) = reshape(a, 1, length(a))
 reshape2D{T,N}(a::Array{T,N}) = reshape(a, prod(size(a,i) for i=1:N-1), size(a,N))
+coreshape(t::HTensorNode) = reshape(t.data, t.subshape..., t.nbasis)
 
 function HTensorNode{T,N}(data::Array{T,N}, children = HTensorNode{T}[])
    nbasis = size(data,N)
@@ -42,9 +43,8 @@ function shape(t::HTensorNode)
    end
 end
 
-
 function array(t::HTensorNode)
-   core = reshape(t.data, t.subshape..., t.nbasis)
+   core = coreshape(t)
    if isleaf(t)
       return core
    else
@@ -60,9 +60,8 @@ function array(t::HTensorNode)
    end
 end
 
-
-function get(t::HTensorNode, idxs)
-   core = reshape(t.data, t.subshape..., t.nbasis)
+function getelts(t::HTensorNode, idxs)
+   core = coreshape(t)
    if isleaf(t)
       return core[idxs..., :]
    else
@@ -70,13 +69,14 @@ function get(t::HTensorNode, idxs)
       nchildren = length(t.children)
       newshape  = Int[]
       for i in 1:nchildren
-         chnm = t.partition[i]
-         chidxs = idxs[f+1:f+chnm]
-         chvals = get(t.children[i], chidxs)
-         core = tensordot(core, reshape2D(chvals), i)
-         append!(newshape, size(chvals)[1:end-1])
-         f += chnm
+         ch_nmode = t.partition[i]
+         ch_idxs  = idxs[f+1 : f+ch_nmode]
+         ch_elts  = getelts(t.children[i], ch_idxs)
+         core = tensordot(core, reshape2D(ch_elts), i)
+         append!(newshape, size(ch_elts)[1:end-1])
+         f += ch_nmode
       end
       reshape(core, newshape..., t.nbasis)
    end
 end
+
