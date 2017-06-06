@@ -27,6 +27,14 @@ end
 isleaf(t::HTensorNode) = isempty(t.children)
 nmode(t::HTensorNode)  = isleaf(t) ? length(t.subshape) : sum(nmode(c) for c in t.children)
 
+function ncoeffs(ht::HTensorNode)
+   n = length(ht.data)
+   for child in ht.children
+      n += ncoeffs(child)
+   end
+   return n
+end
+
 function shape(t::HTensorNode)
    if isleaf(t)
       return t.subshape
