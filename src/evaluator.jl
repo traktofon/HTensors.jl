@@ -7,11 +7,15 @@ struct HTensorEvaluator{T}
    output       :: Vector{T}
 end
 
-isleaf(hte::HTensorEvaluator) = isleaf(hte.ht)
+isleaf(hte::HTensorEvaluator) = isempty(hte.children)
 
-function HTensorEvaluator{T}( ht::HTensorNode{T} )::HTensorEvaluator{T}
+function HTensorEvaluator{T}( ht::HTensorNode{T}, nevalhint=0 )::HTensorEvaluator{T}
+  #println(STDERR, "!!! HTE: nmode = $(nmode(ht)), fulldim = $(fulldim(ht)), nevalhint = $nevalhint")
+   if fulldim(ht) <= nevalhint && nmode(ht) <= 4
+      ht = collapse_all(ht)
+   end
    nchildren = length(ht.children)
-   children = HTensorEvaluator{T}[ HTensorEvaluator(htch) for htch in ht.children ]
+   children = HTensorEvaluator{T}[ HTensorEvaluator(htch, nevalhint) for htch in ht.children ]
    child_inputs = Vector{Int}[ Array{Int}(ht.partition[i]) for i=1:nchildren ]
    output = Array{T}(ht.nbasis)
    return HTensorEvaluator(ht, children, child_inputs, output)
@@ -37,8 +41,10 @@ function getelts(hte::HTensorEvaluator, idxs)
          contract_core!(hte.output, ht.data, hte.children[1].output, hte.children[2].output)
       elseif nchildren == 3
          contract_core!(hte.output, ht.data, hte.children[1].output, hte.children[2].output, hte.children[3].output)
+      elseif nchildren == 4
+         contract_core!(hte.output, ht.data, hte.children[1].output, hte.children[2].output, hte.children[3].output, hte.children[4].output)
       else
-         error("only supports 2 or 3 children")
+         error("only supports 2, 3, or 4 children")
       end
    end
    return hte.output
@@ -120,6 +126,42 @@ function contract_core!(output, core, u1, u2, u3)
             cu1u2_ci += cu1_bci * u2[b]
          end
          out += cu1u2_ci * u3[c]
+      end
+      output[i] = out
+   end
+
+   return nothing
+end
+
+# output[i] = core[a,b,c,d,i] u1[a] u2[b] u3[c] u4[d]
+# but core is stored as matrix of (a,b,c,d) x i 
+function contract_core!(output, core, u1, u2, u3, u4)
+   plen, nbasis = size(core)
+   n1 = length(u1)
+   n2 = length(u2)
+   n3 = length(u3)
+   n4 = length(u4)
+   @assert n1*n2*n3*n4 == plen
+   @assert length(output) == nbasis
+
+   @inbounds for i=1:nbasis
+      abcd = 1
+      out = zero(eltype(core))
+      @inbounds for d=1:n4
+         cu1u2u3_di = zero(eltype(core))
+         @inbounds for c=1:n3
+            cu1u2_cdi = zero(eltype(core))
+            @inbounds for b=1:n2
+               cu1_bcdi = zero(eltype(core))
+               @inbounds for a=1:n1
+                  cu1_bcdi += core[abcd,i] * u1[a]
+                  abcd += 1
+               end
+               cu1u2_cdi += cu1_bcdi * u2[b]
+            end
+            cu1u2u3_di += cu1u2_cdi * u3[c]
+         end
+         out += cu1u2u3_di * u4[d]
       end
       output[i] = out
    end

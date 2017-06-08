@@ -10,6 +10,18 @@ reshape2D{T}(a::Array{T,1}) = reshape(a, 1, length(a))
 reshape2D{T,N}(a::Array{T,N}) = reshape(a, prod(size(a,i) for i=1:N-1), size(a,N))
 coreshape(t::HTensorNode) = reshape(t.data, t.subshape..., t.nbasis)
 
+function HTensorNode{T}(data::Array{T,2}, children = HTensorNode{T}[])
+   nbasis = size(data,2)
+   if isempty(children)
+      subshape = [size(data,1)]
+   else
+      subshape = [child.nbasis for child in children]
+      @assert size(data,1) == prod(subshape)
+   end
+   partition = Int[ nmode(c) for c in children ]
+   HTensorNode(data, subshape, nbasis, children, partition)
+end
+
 function HTensorNode{T,N}(data::Array{T,N}, children = HTensorNode{T}[])
    nbasis = size(data,N)
    subshape = [size(data,i) for i=1:N-1]
@@ -24,8 +36,9 @@ function HTensorNode{T,N}(data::Array{T,N}, children = HTensorNode{T}[])
    HTensorNode(data2D, subshape, nbasis, children, partition)
 end
 
-isleaf(t::HTensorNode) = isempty(t.children)
-nmode(t::HTensorNode)  = isleaf(t) ? length(t.subshape) : sum(nmode(c) for c in t.children)
+isleaf(t::HTensorNode)  = isempty(t.children)
+nmode(t::HTensorNode)   = isleaf(t) ? length(t.subshape) : sum(nmode(c) for c in t.children)
+fulldim(t::HTensorNode) = isleaf(t) ? prod(Float64, t.subshape) : prod(fulldim(c) for c in t.children)
 
 function ncoeffs(ht::HTensorNode)
    n = length(ht.data)

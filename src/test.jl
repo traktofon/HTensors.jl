@@ -12,18 +12,20 @@ u34 = rand(3,4,5)
 u1234 = rand(7,5,1)
 
 t1234 = make4(u1,u2,u3,u4,u12,u34,u1234)
-# @test nmode(t1234) == 4
-# @test shape(t1234) == [10,9,8,11]
-# 
-# a1234 = array(t1234)
-# @test size(a1234) == (10,9,8,11,1)
-# 
-idxs = [2, 3, 5, 8]
-# @test a1234[idxs..., :] == getelts(t1234, idxs)
-# idxs = [3:8, 2, :, [3,5,7]]
-# @test a1234[idxs..., :] == getelts(t1234, idxs)
+@test nmode(t1234) == 4
+@test shape(t1234) == [10,9,8,11]
+
+a1234 = array(t1234)
+@test size(a1234) == (10,9,8,11,1)
 
 te1234 = HTensorEvaluator(t1234)
-te12 = te1234.children[1]
-te1 = te12.children[1]
+te1234c = HTensorEvaluator(t1234,1e6)
+
+idxs = [2, 3, 5, 8]
+@test a1234[idxs..., :] == getelts(t1234, idxs)
+@test a1234[idxs..., :] == getelts(te1234, idxs)
+@test a1234[idxs..., :] == getelts(te1234c, idxs)
+
+idxs = [3:8, 2, :, [3,5,7]]
+@test a1234[idxs..., :] == getelts(t1234, idxs)
 
