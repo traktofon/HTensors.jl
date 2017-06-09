@@ -10,8 +10,7 @@ end
 isleaf(hte::HTensorEvaluator) = isempty(hte.children)
 
 function HTensorEvaluator{T}( ht::HTensorNode{T}, nevalhint=0 )::HTensorEvaluator{T}
-  #println(STDERR, "!!! HTE: nmode = $(nmode(ht)), fulldim = $(fulldim(ht)), nevalhint = $nevalhint")
-   if fulldim(ht) <= nevalhint && nmode(ht) <= 4
+   if fulldim(ht) <= nevalhint
       ht = collapse_all(ht)
    end
    nchildren = length(ht.children)
