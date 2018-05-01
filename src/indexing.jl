@@ -4,7 +4,7 @@ function linearindex(shape, idxs)
    @inbounds for d in 1:min(length(shape), length(idxs))
       i = idxs[d]
       n = shape[d]
-      @assert 1<=i<=n
+      @assert 1<=i<=n "1<=$i<=$n   shape=$shape idxs=$idxs"
       idx += stride*(i-1)
       stride *= n
    end
