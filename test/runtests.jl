@@ -1,5 +1,6 @@
 using Base.Test
 using HTensors
+using BenchmarkTools
 
 include("make.jl")
 
@@ -23,8 +24,13 @@ te1234c = HTensorEvaluator(t1234,1e6)
 
 idxs = [2, 3, 5, 8]
 @test a1234[idxs..., :] == getelts(t1234, idxs)
-@test a1234[idxs..., :] == getelts(te1234, idxs)
-@test a1234[idxs..., :] == getelts(te1234c, idxs)
+@test a1234[idxs..., :] ≈ getelts(te1234, idxs)
+@test a1234[idxs..., :] ≈ getelts(te1234c, idxs)
+
+bm = @benchmark getelts($te1234, $idxs)
+@test memory(bm) == 0
+bm = @benchmark getelts($te1234c, $idxs)
+@test memory(bm) == 0
 
 idxs = [3:8, 2, :, [3,5,7]]
 @test a1234[idxs..., :] == getelts(t1234, idxs)
