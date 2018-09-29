@@ -9,14 +9,14 @@ end
 
 isleaf(hte::HTensorEvaluator) = isempty(hte.children)
 
-function HTensorEvaluator{T}( ht::HTensorNode{T}, nevalhint=0 )::HTensorEvaluator{T}
+function HTensorEvaluator( ht::HTensorNode{T}, nevalhint=0 )::HTensorEvaluator{T} where {T}
    if fulldim(ht) <= nevalhint
       ht = collapse_all(ht)
    end
    nchildren = length(ht.children)
    children = HTensorEvaluator{T}[ HTensorEvaluator(htch, nevalhint) for htch in ht.children ]
-   child_inputs = Vector{Int}[ Array{Int}(ht.partition[i]) for i=1:nchildren ]
-   output = Array{T}(ht.nbasis)
+   child_inputs = Vector{Int}[ Array{Int}(undef, ht.partition[i]) for i=1:nchildren ]
+   output = Array{T}(undef, ht.nbasis)
    return HTensorEvaluator(ht, children, child_inputs, output)
 end
 

@@ -1,5 +1,5 @@
-preorder{T}(node::T) = set_preorder!( T[], node )
-postorder{T}(node::T) = set_postorder!( T[], node )
+preorder(node::T) where {T} = set_preorder!( T[], node )
+postorder(node::T) where {T} = set_postorder!( T[], node )
 
 function set_preorder!(order, node)
    push!(order, node)
